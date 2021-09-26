@@ -120,10 +120,11 @@ def main():
             #ethan add 4 :  save image
             print('input.shape', input.shape, batch_idx)
             im = input[0].cpu().numpy()
+            im = np.transpose(im, (1, 2, 0))
             print('im.shape', im.shape)
-            #img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
-            #im = Image.fromarray(im)
-            #im.save(img_input_filename)    
+            img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
+            im = Image.fromarray(im)
+            im.save(img_input_filename)    
 
             # measure elapsed time
             batch_time.update(time.time() - end)
