@@ -16,6 +16,9 @@ from timm.models import create_model, apply_test_time_pool
 from timm.data import ImageDataset, create_loader, resolve_data_config
 from timm.utils import AverageMeter, setup_default_logging
 
+# ethan add 0: add pil
+from PIL import Image
+
 torch.backends.cudnn.benchmark = True
 _logger = logging.getLogger('inference')
 
@@ -29,8 +32,9 @@ parser.add_argument('--model', '-m', metavar='MODEL', default='dpn92',
                     help='model architecture (default: dpn92)')
 parser.add_argument('-j', '--workers', default=2, type=int, metavar='N',
                     help='number of data loading workers (default: 2)')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                    metavar='N', help='mini-batch size (default: 256)')
+# ethan modified 1: 255 -> 1
+parser.add_argument('-b', '--batch-size', default=1, type=int,
+                    metavar='N', help='mini-batch size (default: 1)') 
 parser.add_argument('--img-size', default=None, type=int,
                     metavar='N', help='Input image dimension')
 parser.add_argument('--input-size', default=None, nargs=3, type=int,
@@ -99,16 +103,21 @@ def main():
     batch_time = AverageMeter()
     end = time.time()
     topk_ids = []
-    # ethan add 1
+    # ethan add 2 :  topk_pbids
     topk_pbids = []
     with torch.no_grad():
         for batch_idx, (input, _) in enumerate(loader):
+            #ethan add 3 :  topk_pbids
+            img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
+            im = Image.fromarray(input[0])
+            im.save(img_input_filename)          
+
             input = input.cuda()
             labels = model(input)
             topk = labels.topk(k)[1]
             topk_ids.append(topk.cpu().numpy())
 
-            #ethan add 2
+            #ethan add 4 :  topk_pbids
             for label in labels:
                 topk_pb, topk_id = torch.topk(label, k)
                 topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
@@ -129,12 +138,12 @@ def main():
             out_file.write('{0},{1}\n'.format(
                 filename, ','.join([ str(v) for v in label])))
 
-    #ethan add 3
+    #ethan add 5 :  topk_pbids
     with open(os.path.join(args.output_dir, './topk_pbs.txt'), 'w') as out_file:
         filenames = loader.dataset.filenames(basename=True)
         for filename, pbid in zip(filenames, topk_pbids):
             out_file.write('{0},{1},{2}\n'.format(
-                filename, ','.join([ str(v) for v in pbid[0]]), ','.join([ str(v) for v in pbid[1]]))
+                filename, ','.join([ str(v) for v in pbid[0]]), ','.join([ str(v) for v in pbid[1]])))
 
 if __name__ == '__main__':
     main()
