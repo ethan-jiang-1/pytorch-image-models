@@ -100,7 +100,7 @@ def main():
     end = time.time()
     topk_ids = []
     # ethan add 1
-    topk_pbs = []
+    topk_pbids = []
     with torch.no_grad():
         for batch_idx, (input, _) in enumerate(loader):
             input = input.cuda()
@@ -109,8 +109,8 @@ def main():
             topk_ids.append(topk.cpu().numpy())
 
             #ethan add 2
-            topk_pb, _ = torch.topk(labels, k)
-            topk_pbs.append(topk_pb.cpu().numpy())
+            topk_pb, topk_id = torch.topk(labels, k)
+            topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -131,9 +131,9 @@ def main():
     #ethan add 3
     with open(os.path.join(args.output_dir, './topk_pbs.csv'), 'w') as out_file:
         filenames = loader.dataset.filenames(basename=True)
-        for filename, pbs in zip(filenames, topk_pbs):
+        for filename, pbid in zip(filenames, topk_pbids):
             out_file.write('{0},{1}\n'.format(
-                filename, ','.join([ str(v) for v in pbs])))
+                filename, ','.join([ str(v) for v in pbid])))
 
 if __name__ == '__main__':
     main()
