@@ -109,8 +109,9 @@ def main():
             topk_ids.append(topk.cpu().numpy())
 
             #ethan add 2
-            topk_pb, topk_id = torch.topk(labels, k)
-            topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
+            for label in labels:
+                topk_pb, topk_id = torch.topk(label, k)
+                topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
