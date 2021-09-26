@@ -119,7 +119,7 @@ def main():
 
             #ethan add 4 :  save image
             print('input.shape', input.shape, batch_idx)
-            im = input[0][0].cpu().numpy()
+            im = input[0].cpu().numpy()
             print('im.shape', im.shape)
             #img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
             #im = Image.fromarray(im)
