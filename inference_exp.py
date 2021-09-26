@@ -118,9 +118,10 @@ def main():
                 topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
 
             #ethan add 4 :  save image
-            img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
-            im = Image.fromarray(input[0].cpu().numpy())
-            im.save(img_input_filename)    
+            print('input.shape', input.shape, batch_idx)
+            #img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
+            #im = Image.fromarray(input[0].cpu().numpy())
+            #im.save(img_input_filename)    
 
             # measure elapsed time
             batch_time.update(time.time() - end)
