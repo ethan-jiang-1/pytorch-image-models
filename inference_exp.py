@@ -107,20 +107,20 @@ def main():
     topk_pbids = []
     with torch.no_grad():
         for batch_idx, (input, _) in enumerate(loader):
-            #ethan add 3 :  topk_pbids
-            img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
-            im = Image.fromarray(input[0])
-            im.save(img_input_filename)          
-
             input = input.cuda()
             labels = model(input)
             topk = labels.topk(k)[1]
             topk_ids.append(topk.cpu().numpy())
 
-            #ethan add 4 :  topk_pbids
+            #ethan add 3 :  topk_pbids
             for label in labels:
                 topk_pb, topk_id = torch.topk(label, k)
                 topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
+
+            #ethan add 4 :  save image
+            img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
+            im = Image.fromarray(input[0].cpu().numpy())
+            im.save(img_input_filename)    
 
             # measure elapsed time
             batch_time.update(time.time() - end)
