@@ -105,6 +105,8 @@ def main():
     topk_ids = []
     # ethan add 2 :  topk_pbids
     topk_pbids = []
+    filenames = loader.dataset.filenames(basename=True)
+
     with torch.no_grad():
         for batch_idx, (input, _) in enumerate(loader):
             input = input.cuda()
@@ -118,11 +120,12 @@ def main():
                 topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
 
             #ethan add 4 :  save image
-            print('input.shape', input.shape, batch_idx)
+            #print('input.shape', input.shape, batch_idx)
             im = input[0].cpu().numpy()
             im = np.uint8(np.transpose(im, (1, 2, 0)))
-            print('im.shape', im.shape)
-            img_input_filename = os.path.join(args.output_dir, "{}.png".format(batch_idx))
+            #print('im.shape', im.shape)
+            img_input_filename = os.path.join(args.output_dir, "{:02}_{}".format(batch_idx, os.path.basename(filenames[batch_idx])))
+            img_input_filename = img_input_filename.replace(".jpg", ".png")
             im = Image.fromarray(im)
             im.save(img_input_filename)    
 
@@ -143,7 +146,7 @@ def main():
                 filename, ','.join([ str(v) for v in label])))
 
     #ethan add 5 :  topk_pbids
-    with open(os.path.join(args.output_dir, './topk_pbs.txt'), 'w') as out_file:
+    with open(os.path.join(args.output_dir, './topk_pbs.csv'), 'w') as out_file:
         filenames = loader.dataset.filenames(basename=True)
         for filename, pbid in zip(filenames, topk_pbids):
             out_file.write('{0},{1},{2}\n'.format(
