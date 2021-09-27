@@ -288,6 +288,9 @@ parser.add_argument('--torchscript', dest='torchscript', action='store_true',
 parser.add_argument('--log-wandb', action='store_true', default=False,
                     help='log training and validation metrics to wandb')
 
+# ethan add 0: class-map
+parser.add_argument('--class-map', type=str, default='',
+                    help='class map file to define class-to-idx')
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -476,13 +479,16 @@ def main():
     if args.local_rank == 0:
         _logger.info('Scheduled epochs: {}'.format(num_epochs))
 
+    #ethan modify 1- add classmap
     # create the train and eval datasets
     dataset_train = create_dataset(
         args.dataset,
         root=args.data_dir, split=args.train_split, is_training=True,
-        batch_size=args.batch_size, repeats=args.epoch_repeats)
+        batch_size=args.batch_size, repeats=args.epoch_repeats, class_map=args.class_map)
     dataset_eval = create_dataset(
-        args.dataset, root=args.data_dir, split=args.val_split, is_training=False, batch_size=args.batch_size)
+        args.dataset, 
+        root=args.data_dir, split=args.val_split, is_training=False, 
+        batch_size=args.batch_size)
 
     # setup mixup / cutmix
     collate_fn = None
