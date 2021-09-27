@@ -594,6 +594,13 @@ def main():
             ])
         output_dir = get_outdir(args.output if args.output else './output/train', exp_name)
         decreasing = True if eval_metric == 'loss' else False
+
+        #ethan add:
+        class_to_idx = None
+        if hasattr(dataset_train.parser, "class_to_idx"):
+            class_to_idx = getattr(dataset_train.parser, "class_to_idx")
+            args.class_to_idx = class_to_idx
+
         saver = CheckpointSaver(
             model=model, optimizer=optimizer, args=args, model_ema=model_ema, amp_scaler=loss_scaler,
             checkpoint_dir=output_dir, recovery_dir=output_dir, decreasing=decreasing, max_history=args.checkpoint_hist)
