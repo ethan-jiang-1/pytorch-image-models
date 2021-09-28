@@ -292,6 +292,14 @@ parser.add_argument('--log-wandb', action='store_true', default=False,
 parser.add_argument('--class-map', type=str, default='',
                     help='class map file to define class-to-idx')
 
+
+# ethan add 1: inspect_object
+class InspectObject:
+    def __init__(self):
+        self.data_config = None
+
+giso = InspectObject()
+
 def _parse_args():
     # Do we have a config file to parse?
     args_config, remaining = config_parser.parse_known_args()
@@ -479,7 +487,7 @@ def main():
     if args.local_rank == 0:
         _logger.info('Scheduled epochs: {}'.format(num_epochs))
 
-    #ethan modify 1- add classmap
+    #ethan modify 2: add classmap
     # create the train and eval datasets
     dataset_train = create_dataset(
         args.dataset,
@@ -595,7 +603,7 @@ def main():
         output_dir = get_outdir(args.output if args.output else './output/train', exp_name)
         decreasing = True if eval_metric == 'loss' else False
 
-        #ethan add:
+        #ethan add 3: class_to_idx
         class_to_idx = None
         if hasattr(dataset_train.parser, "class_to_idx"):
             class_to_idx = getattr(dataset_train.parser, "class_to_idx")
@@ -649,6 +657,13 @@ def main():
         pass
     if best_metric is not None:
         _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
+
+    #ethan add 4: giso
+    giso.data_config = data_config
+    giso.dataset_train = dataset_train
+    giso.dataset_eval = dataset_eval
+    giso.loader_train = loader_train
+    giso.loader_eval = loader_eval
 
 
 def train_one_epoch(
