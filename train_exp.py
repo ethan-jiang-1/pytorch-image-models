@@ -37,6 +37,9 @@ from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
 
+#ethan add 1: save model in wandb
+from timm.utils.checkpoint_saver_exp import CheckpointSaver
+
 try:
     from apex import amp
     from apex.parallel import DistributedDataParallel as ApexDDP
@@ -288,12 +291,8 @@ parser.add_argument('--torchscript', dest='torchscript', action='store_true',
 parser.add_argument('--log-wandb', action='store_true', default=False,
                     help='log training and validation metrics to wandb')
 
-# ethan add 0: class-map
-parser.add_argument('--class-map', type=str, default='',
-                    help='class map file to define class-to-idx')
 
-
-# ethan add 1: inspect_object
+# ethan add 2: inspect_object to capture internal status for inspection
 class InspectObject:
     def __init__(self):
         self.data_config = None
@@ -487,12 +486,10 @@ def main():
     if args.local_rank == 0:
         _logger.info('Scheduled epochs: {}'.format(num_epochs))
 
-    #ethan modify 2: add classmap
-    # create the train and eval datasets
     dataset_train = create_dataset(
         args.dataset,
         root=args.data_dir, split=args.train_split, is_training=True,
-        batch_size=args.batch_size, repeats=args.epoch_repeats, class_map=args.class_map)
+        batch_size=args.batch_size, repeats=args.epoch_repeats)
     dataset_eval = create_dataset(
         args.dataset, 
         root=args.data_dir, split=args.val_split, is_training=False, 
@@ -603,7 +600,7 @@ def main():
         output_dir = get_outdir(args.output if args.output else './output/train', exp_name)
         decreasing = True if eval_metric == 'loss' else False
 
-        #ethan add 3: class_to_idx
+        #ethan add 3: class_to_idx will be saved in model
         class_to_idx = None
         if hasattr(dataset_train.parser, "class_to_idx"):
             class_to_idx = getattr(dataset_train.parser, "class_to_idx")
@@ -658,7 +655,7 @@ def main():
     if best_metric is not None:
         _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
 
-    #ethan add 4: giso
+    #ethan add 4: capture what we like to inspect in giso
     giso.data_config = data_config
     giso.dataset_train = dataset_train
     giso.dataset_eval = dataset_eval
