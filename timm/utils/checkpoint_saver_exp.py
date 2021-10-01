@@ -160,27 +160,15 @@ class CheckpointSaver:
         return files[0] if len(files) else ''
 
     def _upload_model_best_to_wandb(self, best_save_path, epoch, metric=None):
-        import wandb
-        from datetime import datetime
+        import sys
+        this_dirname = os.path.dirname(__file__)        # utils
+        parent_dirname = os.path.dirname(this_dirname)  # timm
+        parent_dirname = os.path.dirname(parent_dirname) # pim        
+        parent_dirname = os.path.dirname(parent_dirname) # collcall        
+        if not parent_dirname in sys.path:
+            sys.path.append(parent_dirname)
 
-        if not hasattr(self, "wandb_now"):
-            self.wandb_now = datetime.now()
-
-        timestamp = "{:02}{:02}{:02}{:02}".format(self.wandb_now.month, self.wandb_now.day, self.wandb_now.hour, self.wandb_now.min)
+        from ex_wandb.ew_wandb_pim_best_model import upload_model_best_pim
         dirname = os.path.dirname(best_save_path)
-        #wandb_name = "{}_{}".format(self.args.model, timestamp)
-        #with wandb.init(project="PimAux", name=wandb_name) as r:  # noqa
+        upload_model_best_pim(dirname, epoch=epoch, metric=metric)
 
-        checkpoint_name = "checkpoint_{}".format(timestamp)
-        artifact = wandb.Artifact(checkpoint_name, type='model')   
-        artifact.add_file(best_save_path)
-
-        args_yaml_path = dirname + "/args.yaml"
-        if os.path.isfile(args_yaml_path):
-            artifact.add_file(args_yaml_path)
-        
-        summary_csv_path = dirname + "summary.csv"
-        if os.path.isfile(summary_csv_path):
-            artifact.add_file(summary_csv_path)
-
-        wandb.log_artifact(artifact)
