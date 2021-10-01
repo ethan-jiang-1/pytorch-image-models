@@ -323,6 +323,8 @@ def main():
     if args.log_wandb:
         if has_wandb:
             wandb.init(project=args.experiment, config=args)
+            # ethan add 3:
+            print("wandb initialized: ", args.experiment)
         else: 
             _logger.warning("You've requested to log metrics to wandb but package not found. "
                             "Metrics not being logged to wandb, try `pip install wandb`")
@@ -600,7 +602,7 @@ def main():
         output_dir = get_outdir(args.output if args.output else './output/train', exp_name)
         decreasing = True if eval_metric == 'loss' else False
 
-        #ethan add 3: class_to_idx will be saved in model
+        #ethan add 4: class_to_idx will be saved in model
         class_to_idx = None
         if hasattr(dataset_train.parser, "class_to_idx"):
             class_to_idx = getattr(dataset_train.parser, "class_to_idx")
@@ -655,7 +657,7 @@ def main():
     if best_metric is not None:
         _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
 
-    #ethan add 4: capture what we like to inspect in giso
+    #ethan add 5: capture what we like to inspect in giso
     giso.data_config = data_config
     giso.dataset_train = dataset_train
     giso.dataset_eval = dataset_eval
