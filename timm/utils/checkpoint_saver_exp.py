@@ -171,7 +171,7 @@ class CheckpointSaver:
         #wandb_name = "{}_{}".format(self.args.model, timestamp)
         #with wandb.init(project="PimAux", name=wandb_name) as r:  # noqa
 
-        checkpoint_name = "{}_checkpoint_{}".format(self.args.model, timestamp)
+        checkpoint_name = "checkpoint_{}".format(timestamp)
         artifact = wandb.Artifact(checkpoint_name, type='model')   
         artifact.add_file(best_save_path)
 
