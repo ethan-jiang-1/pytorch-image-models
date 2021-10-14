@@ -143,14 +143,15 @@ def main():
         filenames = loader.dataset.filenames(basename=True)
         for filename, label in zip(filenames, topk_ids):
             out_file.write('{0},{1}\n'.format(
-                filename, ','.join([ str(v) for v in label])))
+                filename, ','.join([str(v) for v in label])))
 
     #ethan add 5 :  topk_pbids
     with open(os.path.join(args.output_dir, './topk_pbs.csv'), 'w') as out_file:
         filenames = loader.dataset.filenames(basename=True)
         for filename, pbid in zip(filenames, topk_pbids):
             out_file.write('{0},{1},{2}\n'.format(
-                filename, ','.join([ str(v) for v in pbid[0]]), ','.join([ str(v) for v in pbid[1]])))
+                filename, ','.join([str(v) for v in pbid[0]]), ','.join([str(v) for v in pbid[1]])))
+
 
 if __name__ == '__main__':
     main()

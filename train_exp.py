@@ -37,9 +37,6 @@ from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
 
-#ethan add 1: save model in wandb
-from timm.utils.checkpoint_saver_exp import CheckpointSaver
-
 try:
     from apex import amp
     from apex.parallel import DistributedDataParallel as ApexDDP
@@ -60,6 +57,31 @@ try:
     has_wandb = True
 except ImportError: 
     has_wandb = False
+
+#ethan add 1
+from utils_exp.ue_interrupt_signal import InterruptSignal, signal
+#ethan add 1: save model in wandb
+from timm.utils.checkpoint_saver_exp import CheckpointSaver
+
+def has_stop_signal_received():
+    if InterruptSignal.get_received_signal() == signal.SIGUSR1:
+        print("Early stopping: received interrupt signal", InterruptSignal.get_received_signal())
+        return True
+    return False
+
+def has_save_signal_received():
+    if InterruptSignal.get_received_signal() == signal.SIGUSR2:
+        print("Save model: received interrupt signal", InterruptSignal.get_received_signal())
+        return True
+    return False
+
+# ethan add 2: inspect_object to capture internal status for inspection
+class InspectObject:
+    def __init__(self):
+        self.data_config = None
+
+
+giso = InspectObject()
 
 torch.backends.cudnn.benchmark = True
 _logger = logging.getLogger('train')
@@ -292,13 +314,6 @@ parser.add_argument('--log-wandb', action='store_true', default=False,
                     help='log training and validation metrics to wandb')
 
 
-# ethan add 2: inspect_object to capture internal status for inspection
-class InspectObject:
-    def __init__(self):
-        self.data_config = None
-
-giso = InspectObject()
-
 def _parse_args():
     # Do we have a config file to parse?
     args_config, remaining = config_parser.parse_known_args()
@@ -317,14 +332,16 @@ def _parse_args():
 
 
 def main():
+    #ethan add 3
+    InterruptSignal.reset_kill_signal()
+    InterruptSignal.prompt_kill_signal()
+
     setup_default_logging()
     args, args_text = _parse_args()
     
     if args.log_wandb:
         if has_wandb:
             wandb.init(project=args.experiment, config=args)
-            # ethan add 3:
-            print("wandb initialized: ", args.experiment)
         else: 
             _logger.warning("You've requested to log metrics to wandb but package not found. "
                             "Metrics not being logged to wandb, try `pip install wandb`")
@@ -616,6 +633,7 @@ def main():
 
     try:
         for epoch in range(start_epoch, num_epochs):
+
             if args.distributed and hasattr(loader_train.sampler, 'set_epoch'):
                 loader_train.sampler.set_epoch(epoch)
 
@@ -652,12 +670,17 @@ def main():
                 save_metric = eval_metrics[eval_metric]
                 best_metric, best_epoch = saver.save_checkpoint(epoch, metric=save_metric)
 
+            #ethan add 5
+            if has_stop_signal_received():
+                print("break training as stop signal received")
+                break
+
     except KeyboardInterrupt:
         pass
     if best_metric is not None:
         _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
 
-    #ethan add 5: capture what we like to inspect in giso
+    #ethan add 6: capture what we like to inspect in giso
     giso.data_config = data_config
     giso.dataset_train = dataset_train
     giso.dataset_eval = dataset_eval
