@@ -788,6 +788,11 @@ def train_one_epoch(
             lr_scheduler.step_update(num_updates=num_updates, metric=losses_m.avg)
 
         end = time.time()
+  
+        #ethan add 7
+        if has_stop_signal_received():
+            print("break training as stop signal received")
+            break
         # end for
 
     if hasattr(optimizer, 'sync_lookahead'):
