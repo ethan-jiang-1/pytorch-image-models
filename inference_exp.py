@@ -61,6 +61,23 @@ parser.add_argument('--topk', default=5, type=int,
                     metavar='N', help='Top-k to output to CSV')
 
 
+# ethan modified 2: add extra function
+def _save_img_to_model_exp(args, batch_idx, filenames, input):
+    if args.log_freq < 10:
+        return 
+    
+    #print('input.shape', input.shape, batch_idx)
+    im = input[0].cpu().numpy()
+    im = np.uint8(np.transpose(im, (1, 2, 0)))
+    #print('im.shape', im.shape)
+    img_output_folder = args.output_dir + "/imgs_as_input"
+    os.makedirs(img_output_folder, exist_ok=True)
+    img_input_filename = os.path.join(img_output_folder, "{:04}_{}".format(batch_idx, os.path.basename(filenames[batch_idx])))
+    img_input_filename = img_input_filename.replace(".jpg", ".png")
+    im = Image.fromarray(im)
+    im.save(img_input_filename)    
+
+
 def main():
     setup_default_logging()
     args = parser.parse_args()
@@ -120,14 +137,7 @@ def main():
                 topk_pbids.append((topk_pb.cpu().numpy(), topk_id.cpu().numpy()))
 
             #ethan add 4 :  save image
-            #print('input.shape', input.shape, batch_idx)
-            im = input[0].cpu().numpy()
-            im = np.uint8(np.transpose(im, (1, 2, 0)))
-            #print('im.shape', im.shape)
-            img_input_filename = os.path.join(args.output_dir, "{:02}_{}".format(batch_idx, os.path.basename(filenames[batch_idx])))
-            img_input_filename = img_input_filename.replace(".jpg", ".png")
-            im = Image.fromarray(im)
-            im.save(img_input_filename)    
+            _save_img_to_model_exp(args, batch_idx, filenames, input)
 
             # measure elapsed time
             batch_time.update(time.time() - end)
