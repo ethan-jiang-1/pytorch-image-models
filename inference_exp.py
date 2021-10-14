@@ -63,7 +63,7 @@ parser.add_argument('--topk', default=5, type=int,
 
 # ethan modified 2: add extra function
 def _save_img_to_model_exp(args, batch_idx, filenames, input):
-    if args.log_freq < 10:
+    if args.log_freq > 100:
         return 
     
     #print('input.shape', input.shape, batch_idx)
