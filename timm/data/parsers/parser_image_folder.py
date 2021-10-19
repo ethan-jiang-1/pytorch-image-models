@@ -82,7 +82,7 @@ class ParserImageFolder(Parser):
             
     def __getitem__(self, index):
         # ethan changed 2: the original code here is defined in _get_img_data_from_fs
-        if not self.hk_cache_needed:
+        if self.hk_cache_needed:
             return self._hack_get_img_data_from_cache(index)
         else:
             return self._hack_get_img_data_from_fs(index)
