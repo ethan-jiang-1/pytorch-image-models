@@ -53,9 +53,39 @@ class ParserImageFolder(Parser):
             raise RuntimeError(
                 f'Found 0 images in subfolders of {root}. Supported image extensions are {", ".join(IMG_EXTENSIONS)}')
 
-    def __getitem__(self, index):
+        #ethan changed 0:
+        self._hack_check_if_cache_needed()
+
+    # ethan changed 1: add _get_img_data_xxx methods
+    def _hack_check_if_cache_needed(self):
+        if hasattr(self, "cache_needed"):
+            return self.hk_cache_needed
+        if "HACK_CACHE_NEEDED" in os.environ:
+            self.hk_cache_needed = True
+        else:
+            self.hk_cache_needed = False
+        self.hk_cache = {}
+
+    def _hack_get_img_data_from_fs(self, index):
         path, target = self.samples[index]
         return open(path, 'rb'), target
+
+    def _hack_get_img_data_from_cache(self, index):
+        import io
+        path, target = self.samples[index]
+        if path not in self.hk_cache:
+            with open(path, 'rb') as f:
+                content = f.read()
+            self.hk_cache[path] = content 
+        content = self.hk_cache[path]
+        return io.BytesIO(content), target
+            
+    def __getitem__(self, index):
+        # ethan changed 2: the original code here is defined in _get_img_data_from_fs
+        if not self.hk_cache_needed:
+            return self._hack_get_img_data_from_cache(index)
+        else:
+            return self._hack_get_img_data_from_fs(index)
 
     def __len__(self):
         return len(self.samples)
