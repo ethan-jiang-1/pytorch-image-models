@@ -21,15 +21,23 @@ def extend_sys_paths():
 
 extend_sys_paths()
 
+def _change_path(org_path):
+    if os.name != "nt":
+        return org_path
+    new_path = org_path.replace("/", "\\")
+    return new_path
+
 def prepare_cmd(root_app, pm_local_trainval):
     hp_network = "mobilenetv3_small_075"
-    hp_saved_checkpoint_version = "checkpoint_10011702:v6"
-    #hp_saved_uri_model_best_pim = 'ethanone/pim_{}/{}'.format(hp_network, hp_saved_checkpoint_version)
-    #hp_saved_uri_model_best_pim = None
+    # hp_saved_checkpoint_version = "checkpoint_10011702:v6"
+    # hp_saved_uri_model_best_pim = 'ethanone/pim_{}/{}'.format(hp_network, hp_saved_checkpoint_version)
+    # hp_saved_uri_model_best_pim = None
 
     hp_x_model_tar = "{}/x_model/model_best.pth.tar".format(root_app)
+    hp_x_model_tar = _change_path(hp_x_model_tar)
 
-    hp_dataset = pm_local_trainval
+    hp_dataset = "../" + pm_local_trainval
+    hp_dataset = _change_path(hp_dataset)
 
     hp_warmup_epochs_scratch = 6
     hp_epochs_scratch = 200
@@ -53,7 +61,7 @@ def prepare_cmd(root_app, pm_local_trainval):
     cmd = ""
     cmd += "./train_exp.py "
 
-    cmd += "../{} ".format(hp_dataset)
+    cmd += "{} ".format(hp_dataset)
 
     cmd += "--model {} ".format(hp_network)
     cmd += "--batch-size {} ".format(hp_batch_size)

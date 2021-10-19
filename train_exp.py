@@ -59,18 +59,18 @@ except ImportError:
     has_wandb = False
 
 #ethan add 1
-from utils_exp.ue_interrupt_signal import InterruptSignal, signal
+from utils_exp.ue_interrupt_signal import InterruptSignal
 #ethan add 1: save model in wandb
 from timm.utils.checkpoint_saver_exp import CheckpointSaver
 
 def has_stop_signal_received():
-    if InterruptSignal.get_received_signal() == signal.SIGUSR1:
+    if InterruptSignal.has_stop_signal_received():
         print("Early stopping: received interrupt signal", InterruptSignal.get_received_signal())
         return True
     return False
 
 def has_save_signal_received():
-    if InterruptSignal.get_received_signal() == signal.SIGUSR2:
+    if InterruptSignal.has_save_signal_received():
         print("Save model: received interrupt signal", InterruptSignal.get_received_signal())
         return True
     return False
