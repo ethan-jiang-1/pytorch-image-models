@@ -21,7 +21,7 @@ from .helpers import to_ntuple, to_2tuple, to_3tuple, to_4tuple, make_divisible
 from .inplace_abn import InplaceAbn
 from .linear import Linear
 from .mixed_conv2d import MixedConv2d
-from .mlp import Mlp, GluMlp, GatedMlp
+from .mlp import Mlp, GluMlp, GatedMlp, ConvMlp
 from .non_local_attn import NonLocalAttn, BatNonLocalAttn
 from .norm import GroupNorm, LayerNorm2d
 from .norm_act import BatchNormAct2d, GroupNormAct
@@ -36,4 +36,5 @@ from .split_attn import SplitAttn
 from .split_batchnorm import SplitBatchNorm2d, convert_splitbn_model
 from .std_conv import StdConv2d, StdConv2dSame, ScaledStdConv2d, ScaledStdConv2dSame
 from .test_time_pool import TestTimePoolHead, apply_test_time_pool
+from .trace_utils import _assert, _float_to_int
 from .weight_init import trunc_normal_, variance_scaling_, lecun_normal_
