@@ -20,7 +20,7 @@ for some einops/einsum fun
 * Simple transformer style inspired by Andrej Karpathy's https://github.com/karpathy/minGPT
 * Bert reference code checks against Huggingface Transformers and Tensorflow Bert
 
-Hacked together by / Copyright 2021 Ross Wightman
+Hacked together by / Copyright 2020, Ross Wightman
 """
 import math
 import logging
@@ -88,6 +88,9 @@ default_cfgs = {
         url='https://storage.googleapis.com/vit_models/augreg/'
             'B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_384.npz',
         input_size=(3, 384, 384), crop_pct=1.0),
+    'vit_base_patch8_224': _cfg(
+        url='https://storage.googleapis.com/vit_models/augreg/'
+            'B_8-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz'),
     'vit_large_patch32_224': _cfg(
         url='',  # no official model weights for this combo, only for in21k
         ),
@@ -101,6 +104,10 @@ default_cfgs = {
         url='https://storage.googleapis.com/vit_models/augreg/'
             'L_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.1-sd_0.1--imagenet2012-steps_20k-lr_0.01-res_384.npz',
         input_size=(3, 384, 384), crop_pct=1.0),
+
+    'vit_huge_patch14_224': _cfg(url=''),
+    'vit_giant_patch14_224': _cfg(url=''),
+    'vit_gigantic_patch14_224': _cfg(url=''),
 
     # patch models, imagenet21k (weights from official Google JAX impl)
     'vit_tiny_patch16_224_in21k': _cfg(
@@ -118,6 +125,9 @@ default_cfgs = {
     'vit_base_patch16_224_in21k': _cfg(
         url='https://storage.googleapis.com/vit_models/augreg/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0.npz',
         num_classes=21843),
+    'vit_base_patch8_224_in21k': _cfg(
+        url='https://storage.googleapis.com/vit_models/augreg/B_8-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0.npz',
+        num_classes=21843),
     'vit_large_patch32_224_in21k': _cfg(
         url='https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-vitjx/jx_vit_large_patch32_224_in21k-9046d2e7.pth',
         num_classes=21843),
@@ -128,6 +138,12 @@ default_cfgs = {
         url='https://storage.googleapis.com/vit_models/imagenet21k/ViT-H_14.npz',
         hf_hub='timm/vit_huge_patch14_224_in21k',
         num_classes=21843),
+
+    # SAM trained models (https://arxiv.org/abs/2106.01548)
+    'vit_base_patch32_sam_224': _cfg(
+        url='https://storage.googleapis.com/vit_models/sam/ViT-B_32.npz'),
+    'vit_base_patch16_sam_224': _cfg(
+        url='https://storage.googleapis.com/vit_models/sam/ViT-B_16.npz'),
 
     # deit models (FB weights)
     'deit_tiny_patch16_224': _cfg(
@@ -184,7 +200,7 @@ class Attention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
+        q, k, v = qkv.unbind(0)   # make torchscript happy (cannot use tensor as tuple)
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
@@ -488,7 +504,7 @@ def resize_pos_embed(posemb, posemb_new, num_tokens=1, gs_new=()):
     assert len(gs_new) >= 2
     _logger.info('Position embedding grid-size from %s to %s', [gs_old, gs_old], gs_new)
     posemb_grid = posemb_grid.reshape(1, gs_old, gs_old, -1).permute(0, 3, 1, 2)
-    posemb_grid = F.interpolate(posemb_grid, size=gs_new, mode='bilinear')
+    posemb_grid = F.interpolate(posemb_grid, size=gs_new, mode='bicubic', align_corners=False)
     posemb_grid = posemb_grid.permute(0, 2, 3, 1).reshape(1, gs_new[0] * gs_new[1], -1)
     posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
     return posemb
@@ -596,7 +612,8 @@ def vit_small_patch16_384(pretrained=False, **kwargs):
 
 @register_model
 def vit_base_patch32_224(pretrained=False, **kwargs):
-    """ ViT-Base (ViT-B/32) from original paper (https://arxiv.org/abs/2010.11929). No pretrained weights.
+    """ ViT-Base (ViT-B/32) from original paper (https://arxiv.org/abs/2010.11929).
+    ImageNet-1k weights fine-tuned from in21k, source https://github.com/google-research/vision_transformer.
     """
     model_kwargs = dict(patch_size=32, embed_dim=768, depth=12, num_heads=12, **kwargs)
     model = _create_vision_transformer('vit_base_patch32_224', pretrained=pretrained, **model_kwargs)
@@ -630,6 +647,16 @@ def vit_base_patch16_384(pretrained=False, **kwargs):
     """
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     model = _create_vision_transformer('vit_base_patch16_384', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_base_patch8_224(pretrained=False, **kwargs):
+    """ ViT-Base (ViT-B/8) from original paper (https://arxiv.org/abs/2010.11929).
+    ImageNet-1k weights fine-tuned from in21k @ 224x224, source https://github.com/google-research/vision_transformer.
+    """
+    model_kwargs = dict(patch_size=8, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    model = _create_vision_transformer('vit_base_patch8_224', pretrained=pretrained, **model_kwargs)
     return model
 
 
@@ -669,6 +696,53 @@ def vit_large_patch16_384(pretrained=False, **kwargs):
     """
     model_kwargs = dict(patch_size=16, embed_dim=1024, depth=24, num_heads=16, **kwargs)
     model = _create_vision_transformer('vit_large_patch16_384', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_base_patch16_sam_224(pretrained=False, **kwargs):
+    """ ViT-Base (ViT-B/16) w/ SAM pretrained weights. Paper: https://arxiv.org/abs/2106.01548
+    """
+    # NOTE original SAM weights release worked with representation_size=768
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, representation_size=0, **kwargs)
+    model = _create_vision_transformer('vit_base_patch16_sam_224', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_base_patch32_sam_224(pretrained=False, **kwargs):
+    """ ViT-Base (ViT-B/32) w/ SAM pretrained weights. Paper: https://arxiv.org/abs/2106.01548
+    """
+    # NOTE original SAM weights release worked with representation_size=768
+    model_kwargs = dict(patch_size=32, embed_dim=768, depth=12, num_heads=12, representation_size=0, **kwargs)
+    model = _create_vision_transformer('vit_base_patch32_sam_224', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_huge_patch14_224(pretrained=False, **kwargs):
+    """ ViT-Huge model (ViT-H/14) from original paper (https://arxiv.org/abs/2010.11929).
+    """
+    model_kwargs = dict(patch_size=14, embed_dim=1280, depth=32, num_heads=16, **kwargs)
+    model = _create_vision_transformer('vit_huge_patch14_224', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_giant_patch14_224(pretrained=False, **kwargs):
+    """ ViT-Giant model (ViT-g/14) from `Scaling Vision Transformers` - https://arxiv.org/abs/2106.04560
+    """
+    model_kwargs = dict(patch_size=14, embed_dim=1408, mlp_ratio=48/11, depth=40, num_heads=16, **kwargs)
+    model = _create_vision_transformer('vit_giant_patch14_224', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_gigantic_patch14_224(pretrained=False, **kwargs):
+    """ ViT-Gigantic model (ViT-G/14) from `Scaling Vision Transformers` - https://arxiv.org/abs/2106.04560
+    """
+    model_kwargs = dict(patch_size=14, embed_dim=1664, mlp_ratio=64/13, depth=48, num_heads=16, **kwargs)
+    model = _create_vision_transformer('vit_gigantic_patch14_224', pretrained=pretrained, **model_kwargs)
     return model
 
 
@@ -726,6 +800,18 @@ def vit_base_patch16_224_in21k(pretrained=False, **kwargs):
     model_kwargs = dict(
         patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     model = _create_vision_transformer('vit_base_patch16_224_in21k', pretrained=pretrained, **model_kwargs)
+    return model
+
+
+@register_model
+def vit_base_patch8_224_in21k(pretrained=False, **kwargs):
+    """ ViT-Base model (ViT-B/8) from original paper (https://arxiv.org/abs/2010.11929).
+    ImageNet-21k weights @ 224x224, source https://github.com/google-research/vision_transformer.
+    NOTE: this model has valid 21k classifier head and no representation (pre-logits) layer
+    """
+    model_kwargs = dict(
+        patch_size=8, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    model = _create_vision_transformer('vit_base_patch8_224_in21k', pretrained=pretrained, **model_kwargs)
     return model
 
 
